@@ -1,0 +1,199 @@
+---
+title: "Kellogg Finance: Coding Task"
+format:
+  jasa-pdf:
+    keep-tex: true  
+    journal:
+      blinded: false
+  jasa-html: default
+date: last-modified
+author:
+  - name: William Co
+    acknowledgements: Thank you for the opportunity to complete this data task for my predoctoral application. I appreciate your consideration, and I look forward to meeting and contributing.
+    affiliations:
+      - name: University of British Columbia
+        department: Department of Economics
+abstract: This is a data task submitted for a predoctoral application.
+  
+bibliography: bibliography.bib  
+editor: 
+  markdown: 
+    wrap: sentence
+---
+
+## Introduction
+
+A copy of writing sample can be found here [link](https://github.com/WilliamClintC/EvaluativeAssignment_2024/blob/main/EvaluativeAssignment_2024/Writing%20Sample.pdf) and will be submitted as well.
+[@coEvaluativeAssignment_2024EvaluativeAssignment_2024Writing]
+
+A copy of the time sheet will be submitted
+
+Code and output data for task 2 will be submitted as well.
+
+## Task 1: Red Sox Ticket Prices
+
+*How do the prices consumers pay for tickets change as the game date approaches (i.e., as the number of days between transaction date and game date declines)? How does this dynamic pattern change across years?*
+
+To address the question, we begin by running a preliminary regression to gain a better understanding of our data.
+This regression includes all available control variables and accounts for the number of tickets purchased.
+Considering the potential for bulk discounts associated with purchasing multiple tickets, we aim to capture variations in pricing that may occur in different contexts, where such discounts might or might not be offered.
+
+1.  **Model with `number_of_tickets`**: $$
+    \text{price\_per\_ticket} = \beta_0 + \beta_1 \cdot \text{days\_until\_game} + \beta_2 \cdot \mathbf{\text{controls}}  
+    + \beta_3 \cdot \text{num\_tickets} + \epsilon
+    $$
+
+2.  **Model without `number_of_tickets`**: $$
+    \text{price\_per\_ticket} = \beta_0 + \beta_1 \cdot \text{days\_until\_game} + \beta_2 \cdot \mathbf{\text{controls}} + \epsilon
+    $$
+
+3.  **Model with `number_of_tickets` using log price**: $$
+    \log(\text{price\_per\_ticket}) = \beta_0 + \beta_1 \cdot \text{days\_until\_game} + \beta_2 \cdot \mathbf{\text{controls}} + 
+    \beta_3 \cdot \text{num\_tickets} + \epsilon
+    $$
+
+4.  **Model without `number_of_tickets` using log price**: $$
+    \log(\text{price\_per\_ticket}) = \beta_0 + \beta_1 \cdot \text{days\_until\_game} + \beta_2 \cdot \mathbf{\text{controls}} + \epsilon
+    $$
+
+Where: $$
+\mathbf{\text{controls}} = \text{day\_game, weekend\_game, sectiontype, gamemonth, team, year}
+$$
+
+-   $\beta_0$ is the intercept.
+-   $\beta_1, \beta_3$ are the coefficients for the respective predictor variables.
+-   $\beta_2$ is a vector of coefficients for control variables.
+-   $\epsilon$ is the error term.
+
+![](images/0.png)
+
+The results indicate that the earlier tickets are purchased, the more expensive they tend to be, as evidenced by the positive and significant coefficient on the variable `days_from_transaction_until_game`.
+This finding is counter intuitive.
+Typically, purchasing tickets earlier is expected to be less expensive because it reduces the risk for the ticket vendor, smooths out their cash flow, and provides an early cash injection.
+Additionally, the time value of money suggests that receiving payments earlier should incentivise lower prices.
+
+To explore this unexpected result further, we conduct an investigation using scatter plots.
+
+![](images/16.png)
+
+![](images/17.png)
+
+The relationship may be biased by noise.
+So this would warrant further investigation.
+To investigate further, I look into the team with the most observations (NYY).
+I also control for other attributes with the most observation within NYY (LowerBleachers, 2 Tickets, April, Evening and Weekend games in 2011).
+The following are my results.![](images/18.png)
+
+The results show similarity to the initial plots we observed from earlier.
+I suspect the results from the data are due to some noise introduced by price outliers.
+I clean the data of price outliers manually and rerun the same regressions, mentioned prior.
+
+![](images/5.png)
+
+There does not seem to be any significant effect on the results.
+To further investigate, we use bin scatter plots and show our results again.
+
+![](images/11.png)
+
+![](images/10.png)
+
+![](images/8-01.png)
+
+![](images/7.png)
+
+From this we see our regression results makes sense now.
+There are huge outliers of people who pay more when game day is near (relative to when game day is far).
+But on average people pay less when buying tickets near game day.
+So to answer this question How do the prices consumers pay for tickets change as the game date approaches (i.e., as the number of days between transaction date and game date declines)?
+The initial answer would be the prices **decrease** as game date approaches.
+To further investigate the dynamic pattern, we would run a quasi "event study" model to investigate.
+We show the distribution of transaction and see there is bunching happening approximately every 8 days.
+There are many reasons why this can be happening ranging from discounts/promotions, timing of the games, etc.
+While we don't know why exactly this is happening we can exploit these observations for our event study model.
+
+![](images/6.png)
+
+Using this observation we create our model.
+
+$$
+\text{price\_per\_ticket} = \beta_0 + \sum_{j=1}^{n} \beta_{1j} \cdot D_j \cdot \text{days\_until\_game} + \beta_2 \cdot \text{controls} + \beta_3 \cdot \text{num\_tickets} + \epsilon
+$$
+
+### Where:
+
+$$
+\mathbf{\mathrm{controls}} = \text{day\_game, weekend\_game, sectiontype, gamemonth, team, year}
+$$
+
+-   $\beta_0$ is the intercept.
+-   $\beta_{1j}$ is the coefficient for each range $j$ of days from transaction until game:
+    -   $D_1 = 1$ if days are in the range $0-8$
+    -   $D_2 = 1$ if days are in the range $9-16$
+    -   $D_3 = 1$ if days are in the range $17-24$
+    -   ...
+    -   $D_n = 1$ for the last specified range (e.g., $241-250$).
+-   $\beta_2 \cdot \mathbf{\text{controls}}$ represents a vector of control variables included in the model.
+-   $\beta_3$ is the coefficient for the number of tickets.
+-   $\epsilon$ is the error term.
+
+![](images/12.png)
+
+We see from this that the relationship may not be entirely linear.
+We also see that ticket prices are in fact lower come one week before a game, which supports previous results.
+One thing we did not take into account for is the bias of human time perception.
+People typically think of time between weeks, days and months, wherein overly long periods of times are not referred to in weeks but in months.
+To study this, we run the same model but take into account human biases, instead of cutting the dummy variables in a 8 day basis, we cut up our dummy variables based on human perceptions of months and weeks.
+
+$$
+\mathrm{price\_per\_ticket} = \beta_0 + \sum_{j=1}^{n} \beta_{1j} \cdot D_j \cdot \mathrm{days\_until\_game} + \beta_2 \cdot \mathrm{controls} + \beta_3 \cdot \mathrm{num\_tickets} + \epsilon
+$$
+
+### Where:
+
+$$
+\mathbf{\mathrm{controls}} = \mathrm{day\_game, weekend\_game, sectiontype, gamemonth, team, year}
+$$
+
+-   $\beta_0$ is the intercept.
+-   $\beta_{1j}$ is the coefficient for each range $j$ of weeks and months from the transaction until the game:
+    -   $D_1 = 1$ if the time until the game is in the range of 0-1 week
+    -   $D_2 = 1$ if the time until the game is in the range of 1-2 weeks
+    -   $D_3 = 1$ if the time until the game is in the range of 2-3 weeks
+    -   $D_4 = 1$ if the time until the game is in the range of 3-4 weeks
+    -   $D_5 = 1$ if the time until the game is in the range of 4-5 weeks
+    -   $D_6 = 1$ if the time until the game is in the range of 1-2 months
+    -   $D_7 = 1$ if the time until the game is in the range of 2-3 months
+    -   $D_8 = 1$ if the time until the game is in the range of 3-4 months
+    -   ...
+    -   $D_n = 1$ if the time until the game is in the range of 8 to 8.3 months, as the data concludes at 250 days.
+-   $\beta_2 \cdot \mathbf{\text{controls}}$ represents a vector of control variables included in the model.
+-   $\beta_3$ is the coefficient for the number of tickets.
+-   $\epsilon$ is the error term.
+
+![](images/13.png)
+
+We see smoother and more observable relationship here.
+All this to suggest that in fact, on average, the later you buy your tickets the cheaper ticket prices would be.
+Next we study the year differences.
+We look at the year coefficients of our main model.
+
+![](images/14.png)
+
+We see that there are significant year fixed effects that could be worth investigating.
+Next, we run the same analysis restricting our observations within each year.
+
+![](images/15.png)
+
+The observed trends reveal an interesting pattern: purchasing tickets well in advance tends to result in higher ticket prices.
+However, there are variations in this relationship over the years.
+For instance, in 2009, the standard error is notably large, indicating substantial variability.
+During this year, some consumers were able to purchase tickets far in advance (approximately 250 days before the game) at prices comparable to those closer to game day.
+
+In contrast, the dynamics shift in subsequent years, particularly in 2010, 2011, and 2012.
+The standard error becomes significantly smaller, demonstrating greater consistency in pricing trends.
+As a result, a clearer pattern emerges: tickets purchased closer to game day are generally cheaper.
+By 2012, buying tickets just one week before the game consistently results in lower prices, emphasizing the evolving dynamic relationship between purchase timing and ticket cost.
+
+## Task 2: Data Manipulation  
+
+The data task took approximately 40 min.
